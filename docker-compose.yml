@@ -1,0 +1,71 @@
+version: '3'
+
+services:
+  mariadb:
+    image: docker.io/bitnami/mariadb:latest
+    container_name: moodle_mariadb
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes # Set to 'no' and provide MARIADB_ROOT_PASSWORD in production
+      - MARIADB_USER=${MOODLE_DATABASE_USER:-bn_moodle}
+      - MARIADB_PASSWORD=${MOODLE_DATABASE_PASSWORD:-bitnami}
+      - MARIADB_DATABASE=${MOODLE_DATABASE_NAME:-bitnami_moodle}
+    volumes:
+      - mariadb_data:/bitnami/mariadb
+    networks:
+      - moodle_network
+
+  moodle:
+    image: docker.io/bitnami/moodle:latest
+    container_name: moodle
+    depends_on:
+      - mariadb
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    environment:
+      # Database settings
+      - MOODLE_DATABASE_HOST=mariadb
+      - MOODLE_DATABASE_PORT_NUMBER=3306
+      - MOODLE_DATABASE_USER=${MOODLE_DATABASE_USER:-bn_moodle}
+      - MOODLE_DATABASE_PASSWORD=${MOODLE_DATABASE_PASSWORD:-bitnami}
+      - MOODLE_DATABASE_NAME=${MOODLE_DATABASE_NAME:-bitnami_moodle}
+      
+      # Moodle settings
+      - MOODLE_USERNAME=${MOODLE_USERNAME:-user}
+      - MOODLE_PASSWORD=${MOODLE_PASSWORD:-bitnami}
+      - MOODLE_EMAIL=${MOODLE_EMAIL:-user@example.com}
+      - MOODLE_SITE_NAME=${MOODLE_SITE_NAME:-New Site}
+      - MOODLE_LANG=${MOODLE_LANG:-en}
+      
+      # SMTP settings (uncomment and configure if needed)
+      # - MOODLE_SMTP_HOST=smtp.example.com
+      # - MOODLE_SMTP_PORT_NUMBER=587
+      # - MOODLE_SMTP_USER=your_email@example.com
+      # - MOODLE_SMTP_PASSWORD=your_password
+      # - MOODLE_SMTP_PROTOCOL=tls
+      
+      # Reverse proxy settings (uncomment if behind a proxy)
+      # - MOODLE_HOST=yourdomain.com
+      # - MOODLE_REVERSEPROXY=true
+      # - MOODLE_SSLPROXY=true
+      
+      # Security (set to 'no' in production and provide passwords)
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - moodle_data:/bitnami/moodle
+      - moodledata_data:/bitnami/moodledata
+    networks:
+      - moodle_network
+    restart: unless-stopped
+
+volumes:
+  mariadb_data:
+    driver: local
+  moodle_data:
+    driver: local
+  moodledata_data:
+    driver: local
+
+networks:
+  moodle_network:
+    driver: bridge
